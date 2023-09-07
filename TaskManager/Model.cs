@@ -21,8 +21,6 @@ using System.Windows.Threading;
 
 namespace WpfApp3
 {
-    
-
     [AddINotifyPropertyChangedInterface]
     internal class ProcessInfo
     {
@@ -49,7 +47,7 @@ namespace WpfApp3
             string processName, priority, startTime, processQwner, processorTime, ram;
             processName = priority = startTime = processQwner = processorTime = ram = noInfoStr;
             int id;
-            PerformanceCounter cpuCounter, ramCounter;
+            PerformanceCounter cpuCounter;
 
             processes = Process.GetProcesses();
 
@@ -59,8 +57,8 @@ namespace WpfApp3
                 ProcessInfo? processInfo = ProcessesInfo.FirstOrDefault(x => x.ID == process.Id);
                 if (processInfo != null)
                 {
-                    try { processorTime = $"{Math.Round(processInfo.CpuCounter.NextValue() / Environment.ProcessorCount, 1)} %"; } catch { }
-                    try { ram = $"{Math.Round((double)process.WorkingSet64 / 1024, 3)} Kb"; } catch { }
+                    try { processorTime = $"{Math.Round(processInfo.CpuCounter.NextValue() / Environment.ProcessorCount, 1)} %"; } catch { processorTime = noInfoStr; }
+                    try { ram = $"{Math.Round((double)process.WorkingSet64 / 1024, 3)} Kb"; } catch { ram = noInfoStr; }
                     Application.Current?.Dispatcher.Invoke(DispatcherPriority.Render,  new Action(() =>
                     {
                         processInfo.Priority = priority;
@@ -75,8 +73,8 @@ namespace WpfApp3
                     processName = process.ProcessName;
                     id = process.Id;
                     cpuCounter = new("Process", "% Processor Time", processName);
-                    try { processorTime = $"{Math.Round(cpuCounter.NextValue() / Environment.ProcessorCount, 1)} %"; } catch { }
-                    try { ram = $"{Math.Round((double)process.WorkingSet64 / 1024, 3)} Kb"; } catch { }
+                    try { processorTime = $"{Math.Round(cpuCounter.NextValue() / Environment.ProcessorCount, 1)} %"; } catch { processorTime = noInfoStr; }
+                    try { ram = $"{Math.Round((double)process.WorkingSet64 / 1024, 3)} Kb"; } catch { ram = noInfoStr; }
                     Application.Current?.Dispatcher.Invoke(DispatcherPriority.Render, new Action(() =>
                     {
                         ProcessInfo temp;
@@ -102,10 +100,7 @@ namespace WpfApp3
                 foreach (var process in ProcessesInfo)
                     if (processes.FirstOrDefault(x => x.Id == process.ID) == null) toDelete.Add(process);
                 foreach (var process in toDelete)
-                    Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
-                    {
-                        ProcessesInfo.Remove(process);
-                    }));
+                    Application.Current?.Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => {ProcessesInfo.Remove(process);}));
             }
         }
 
@@ -185,7 +180,7 @@ namespace WpfApp3
             timer.Start();
         }
 
-        public ProcessInfo SelectedProcess { get; set; }
+        public ProcessInfo? SelectedProcess { get; set; }
 
         public int SelectedIndex
         {
@@ -214,12 +209,14 @@ namespace WpfApp3
         }
 
         public Visibility DataVisible { get; set; }
+
         public ObservableCollection<ProcessInfo> ProcessesInfo { get; set; }
 
         public  string[] UpdateComboboxStr { get; } = { "1 second", "2 seconds", "5 seconds", "Manual" };
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string ProcPath { get; set; }
+        public string? ProcPath { get; set; }
 
         public void OnPropertyChanged([CallerMemberName] string prop = "") => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
 
